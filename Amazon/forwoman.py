@@ -155,7 +155,7 @@ def forWoman(toCollect=1000):
         time.sleep(random.uniform(1.0, 3.0))
         
         # 滚动页面
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
 
 
 
