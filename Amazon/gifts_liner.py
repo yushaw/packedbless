@@ -15,11 +15,9 @@ import time
 import random
 
 
-def get_details(product_link, driver):    
+def get_details(product_link):
     
-     # 随机延迟
-    time.sleep(random.uniform(2.0, 6.0))
-    
+    driver = webdriver.Chrome()
     driver.get(product_link)  
   
     # 提取详细信息
@@ -120,6 +118,9 @@ def phaseOne(main_link,excel_path, toCollect):
                 
                 # 在新标签页中打开商品详细页面
                 product_link = "https://www.amazon.com" + product.select_one("a")["href"]
+                
+                # 调用get_details函数获取详细信息
+                details = get_details(product_link)
 
                 # 去重
                 if product_link in product_links:
@@ -171,13 +172,17 @@ def phaseOne(main_link,excel_path, toCollect):
                 else:
                     print("Image URL with attribute 'data-a-hires' not found.")
                     
-                data_list.append({
-                    "图": image_url,  # This will be the image URL, actual image insertion happens later
+                # 将详细信息添加到您的数据字典
+                data = {
+                    "图": image_url,
                     "标题": title,
                     "价格": price,
                     "人数": reviews,
-                    "地址": product_link
-                })
+                    "地址": product_link,
+                    **details  # 这里合并了详细信息
+                }
+                    
+                data_list.append(data)
                                 
                 # 更新成功数量
                 success_count += 1
@@ -222,31 +227,22 @@ def phaseOne(main_link,excel_path, toCollect):
 
 def phaseTwo(excel_path):
     
-    driver = webdriver.Chrome()
-    
-    wb = load_workbook(filename=excel_path)
-    ws = wb.active    
-    
-    # 初始化Selenium Webdriver
-    driver = webdriver.Chrome()
-    
-    # 读取Pandas DataFrame
+    # 读取Excel到DataFrame
     df = pd.read_excel(excel_path)
     
-    # 使用多线程获取详细信息
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        details = list(executor.map(lambda url: get_details(url, driver), df['地址']))
-
-        
-    details_df = pd.DataFrame(details)
-    final_df = pd.concat([df, details_df], axis=1)
+    # 重排序列
     column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址"]
-    final_df = final_df[column_order]
+    final_df = df[column_order]
+    
+    # 使用已存在的工作簿保存最终DataFrame
+    wb = load_workbook(filename=excel_path)
     
     # 将最终DataFrame保存到Excel
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
         writer.book = wb
         final_df.to_excel(writer, index=False)
+    
+    ws = wb.active
     
     # 设置每行的宽度
     ws.column_dimensions['A'].width = 15
@@ -296,9 +292,7 @@ def phaseTwo(excel_path):
     # 保存修改后的Excel文件
     wb.save(excel_path)
     
-    driver.quit()
-    
     
 def get_gifts(main_link, excel_path, toCollect=5):
-    #phaseOne(main_link, excel_path, toCollect)
+    phaseOne(main_link, excel_path, toCollect)
     phaseTwo(excel_path)
