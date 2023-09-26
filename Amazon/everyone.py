@@ -59,7 +59,7 @@ def forEveryone(toCollect=1000):
                     price = float(price.replace("$", ""))
                 except ValueError:
                     # 如果转换失败，设置为 None
-                    price = None
+                    pass
 
                 reviews = product.select_one(".ptijou-1").text  # 根据实际情况调整
                 reviews = reviews.replace(',', '')
@@ -109,8 +109,15 @@ def forEveryone(toCollect=1000):
                 description = " ".join(item.text.strip() for item in description_items)
                 
                 parent_div = detail_soup.find('div', {'id': 'averageCustomerReviews'})
-                rating_element = parent_div.find('span', {'class': 'a-size-base a-color-base'})
                 
+                try:
+                    rating_element = parent_div.find('span', {'class': 'a-size-base a-color-base'})
+                except:
+                    try:
+                        rating_element = parent_div.find('span', {'class': 'a-icon-alt'})
+                    except:
+                        pass
+                                    
                 if rating_element:
                     rating = rating_element.text.strip()
                     try:
@@ -118,7 +125,7 @@ def forEveryone(toCollect=1000):
                         rating = float(rating)
                     except ValueError:
                         # 如果转换失败，设置为 None
-                        rating = None
+                        pass
                 else:
                     rating = "N/A"
 

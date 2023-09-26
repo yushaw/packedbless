@@ -58,7 +58,7 @@ def forWoman(toCollect=1000):
                     price = float(price.replace("$", ""))
                 except ValueError:
                     # 如果转换失败，设置为 None
-                    price = None
+                    pass
 
                 reviews = product.select_one(".ptijou-1").text  # 根据实际情况调整
                 reviews = reviews.replace(',', '')
@@ -105,21 +105,25 @@ def forWoman(toCollect=1000):
                 description = " ".join(item.text.strip() for item in description_items)
                 
                 parent_div = detail_soup.find('div', {'id': 'averageCustomerReviews'})
-                rating_element = parent_div.find('span', {'class': 'a-size-base a-color-base'})
+                
+                try:
+                    rating_element = parent_div.find('span', {'class': 'a-size-base a-color-base'})
+                except:
+                    try:
+                        rating_element = parent_div.find('span', {'class': 'a-icon-alt'})
+                    except:
+                        pass
                 
                 if rating_element:
                     rating = rating_element.text.strip()
                     try:
                         # 提取数字并转换为 int 类型
                         rating = float(rating)
-                    except ValueError:
+                    except:
                         # 如果转换失败，设置为 None
-                        rating = None
+                        pass
                 else:
                     rating = "N/A"
-                    
-                if rating == "N/A" or float(rating) < 4.0:
-                    continue
 
                 # print(f"Title: {title}, Price: {price}, Rating: {rating}, Reviews: {reviews}")
                 # print(f"Categories: {cat1} > {cat2} > {cat3}")
