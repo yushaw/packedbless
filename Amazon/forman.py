@@ -52,7 +52,12 @@ def forMan(toCollect=1000):
                 
                 # 提取信息
                 title = product.select_one("[data-test='product'] span").text
-                price = product.select_one("[data-test='price']").text
+                
+                try:
+                    price = product.select_one("[data-test='price']").text
+                except:
+                    price = None
+                    
                 try:
                     # 提取数字并转换为 float 类型
                     price = float(price.replace("$", ""))
