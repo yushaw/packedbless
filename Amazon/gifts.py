@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
 import random
+import captcha.amazon as captcha
 
 
 def get_details(product_link, driver):    
@@ -21,6 +22,17 @@ def get_details(product_link, driver):
     time.sleep(random.uniform(2.0, 6.0))
     
     driver.get(product_link)  
+    
+    # Check for captcha
+    if "captcha" in driver.page_source.lower():
+        captcha_solved = captcha.solve_captcha(driver)
+        if not captcha_solved:
+            print("Failed to solve captcha. Product link: ", product_link)
+            return  {"分类1": "NaN",
+                    "分类2": "NaN",
+                    "分类3": "NaN",
+                    "描述": "NaN",
+                    "rating": "NaN"}
   
     # 提取详细信息
     try:
@@ -73,9 +85,7 @@ def get_details(product_link, driver):
         rating = "N/A"
     
     # 随机延迟
-    # time.sleep(random.uniform(2.0, 6.0))
-    driver.close()
-    
+    # time.sleep(random.uniform(2.0, 6.0))    
     return {"分类1": cat1,
                     "分类2": cat2,
                     "分类3": cat3,
@@ -232,10 +242,9 @@ def phaseTwo(excel_path):
     df = pd.read_excel(excel_path)
     
     # 使用多线程获取详细信息
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         details = list(executor.map(lambda url: get_details(url, driver), df['地址']))
 
-        
     details_df = pd.DataFrame(details)
     final_df = pd.concat([df, details_df], axis=1)
     column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址"]
@@ -298,5 +307,5 @@ def phaseTwo(excel_path):
     
     
 def get_gifts(main_link, excel_path, toCollect=5):
-    #phaseOne(main_link, excel_path, toCollect)
+    # phaseOne(main_link, excel_path, toCollect)
     phaseTwo(excel_path)
