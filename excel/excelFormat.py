@@ -33,6 +33,9 @@ def excelFormat(excel_path):
     ws.column_dimensions['J'].width = 30
 
     wb.save(excel_path)
+    
+    processed = 0
+    
     for row in ws.iter_rows(min_col=4, max_col=4, min_row=2):  # 假设“图”列在第一列
         for cell in row:
             image_url = cell.value  # 从单元格获取图片URL
@@ -58,6 +61,9 @@ def excelFormat(excel_path):
                 # 调整单元格大小
                 ws.row_dimensions[cell.row].height = 8 * 20  # 约等于200像素
                 ws.column_dimensions[openpyxl.utils.get_column_letter(cell.column)].width = 25  # 约等于200像素
+                
+                processed += 1
+                print("Processed: ", processed)
 
     for row in ws.iter_rows(min_row=2, min_col= 10, max_col=10):  # 假设第一行是表头，从第二行开始
         for cell in row:

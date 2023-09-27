@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 import time
 import random
 import captcha.amazon as captcha
-import excel.excelFormat as ef
 
 
 def get_details(product_link): 
@@ -269,4 +268,3 @@ def phaseTwo(excel_path, max_workers=3):
 def get_gifts(main_link, excel_path, toCollect=5, max_workers=3):
     phaseOne(main_link, excel_path, toCollect)
     phaseTwo(excel_path, max_workers)
-    ef.excelFormat(excel_path)
