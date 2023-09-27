@@ -9,14 +9,15 @@ import time
 def tagging(excel_path):
     df = pd.read_excel(excel_path)
     
-    processed = 0
+    tagged = 0
     
     for index, row in df.iterrows():
         
-        if row.get('processed', False):
-            processed += 1
-            print("Processed: ", processed)
+        if row.get('processed') == True:
+            tagged += 1
+            print("Processed: ", tagged)
             continue  # Skip already processed rows
+        
         description = row['描述']
         
         max_retries = 5
@@ -45,8 +46,8 @@ def tagging(excel_path):
 
         df.to_excel(excel_path, index=False)
         
-        processed += 1
-        print("Processed: ", processed)
+        tagged += 1
+        print("Processed: ", tagged)
 
 
 
@@ -57,7 +58,7 @@ def translate(excel_path):
     
     for index, row in df.iterrows():
         
-        if row.get('translated', False):
+        if row.get('translated') == True:
             processed += 1
             print("translated: ", processed)
             continue  # Skip already processed rows

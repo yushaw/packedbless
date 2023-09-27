@@ -221,9 +221,7 @@ def phaseOne(main_link,excel_path, toCollect):
 
 
 def phaseTwo(excel_path):
-    
-    driver = webdriver.Chrome()
-    
+        
     wb = load_workbook(filename=excel_path)
     ws = wb.active    
     

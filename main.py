@@ -1,6 +1,7 @@
 import Amazon.gifts_liner as gifts
 import dataProcess.dataProcess as dp
 import time
+import excel.excelFormat as ef
 
 everyone = "https://www.amazon.com/gcx/Gifts-for-everyone/gfhz/events/"
 everyone_path = './data/raw/amazon_everyone.xlsx'
@@ -17,6 +18,7 @@ woman_path = './data/raw/amazon_woman.xlsx'
 max_retries = 5
 retry_delay = 3
 
+
 for i in range(max_retries):
     try:
         dp.tagging(everyone_path)
@@ -27,3 +29,5 @@ for i in range(max_retries):
         time.sleep(retry_delay)
 else:
     print("Max retries reached. Exiting.")
+
+ef.excelFormat(everyone_path)
