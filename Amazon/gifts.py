@@ -151,7 +151,7 @@ def phaseOne(main_link,excel_path, toCollect):
                 try:
                     # 提取数字并转换为 float 类型
                     price = float(price.replace("$", ""))
-                except ValueError as e:
+                except:
                     # 如果转换失败，设置为 None
                     print("Problem with price. Product link: ", product_link)
                     price = None
@@ -162,7 +162,7 @@ def phaseOne(main_link,excel_path, toCollect):
                 try:
                     # 提取数字并转换为 int 类型
                     reviews = int(reviews)
-                except ValueError as e:
+                except:
                     # 如果转换失败，设置为 None
                     print("Problem with reviews. Product link: ", product_link)
                     reviews = None
