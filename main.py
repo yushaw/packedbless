@@ -14,7 +14,7 @@ woman_path = './data/raw/amazon_woman.xlsx'
 
 # gifts.get_gifts(everyone, everyone_path, 1000)
 # gifts.get_gifts(forMan, man_path, 1000)
-ef.excelFormat(man_path)
+ef.excelFormat(everyone_path)
 #gifts.get_gifts(forWoman, woman_path, 1000)
 
 

@@ -14,9 +14,12 @@ from bs4 import BeautifulSoup
 import time
 import random
 import captcha.amazon as captcha
+import excel.excelFormat as ef
 
 
-def get_details(product_link, driver):    
+def get_details(product_link): 
+    
+    driver = webdriver.Chrome() 
     
      # 随机延迟
     time.sleep(random.uniform(2.0, 6.0))
@@ -28,6 +31,7 @@ def get_details(product_link, driver):
         captcha_solved = captcha.solve_captcha(driver)
         if not captcha_solved:
             print("Failed to solve captcha. Product link: ", product_link)
+            driver.quit()
             return  {"分类1": "NaN",
                     "分类2": "NaN",
                     "分类3": "NaN",
@@ -86,6 +90,7 @@ def get_details(product_link, driver):
     
     # 随机延迟
     # time.sleep(random.uniform(2.0, 6.0))    
+    driver.quit()
     return {"分类1": cat1,
                     "分类2": cat2,
                     "分类3": cat3,
@@ -230,7 +235,7 @@ def phaseOne(main_link,excel_path, toCollect):
         raise ValueError(str(e))
 
 
-def phaseTwo(excel_path):
+def phaseTwo(excel_path, max_workers=3):
         
     wb = load_workbook(filename=excel_path)
     ws = wb.active    
@@ -242,8 +247,8 @@ def phaseTwo(excel_path):
     df = pd.read_excel(excel_path)
     
     # 使用多线程获取详细信息
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        details = list(executor.map(lambda url: get_details(url, driver), df['地址']))
+    with ThreadPoolExecutor(max_workers) as executor:
+        details = list(executor.map(get_details, df["地址"]))
 
     details_df = pd.DataFrame(details)
     final_df = pd.concat([df, details_df], axis=1)
@@ -254,51 +259,6 @@ def phaseTwo(excel_path):
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
         writer.book = wb
         final_df.to_excel(writer, index=False)
-    
-    # 设置每行的宽度
-    ws.column_dimensions['A'].width = 15
-    ws.column_dimensions['B'].width = 15
-    ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 15
-    ws.column_dimensions['E'].width = 20
-    ws.column_dimensions['F'].width = 40
-    ws.column_dimensions['J'].width = 30
-
-
-    for row in ws.iter_rows(min_col=4, max_col=4, min_row=2):  # 假设“图”列在第一列
-        for cell in row:
-            image_url = cell.value  # 从单元格获取图片URL
-            # 使用requests库从网络下载图片
-            response = requests.get(image_url)
-            if response.status_code == 200:
-                img_data = BytesIO(response.content)
-
-                # 使用PIL库来打开和调整图片
-                with Image.open(img_data) as img:
-                    w, h = img.size
-                    scaling_factor = min(200/w, 200/h)
-                    img = img.resize((int(w * scaling_factor), int(h * scaling_factor)))
-
-                    img_byte_arr = BytesIO()
-                    img.save(img_byte_arr, format='JPEG')
-                    img_byte_arr = img_byte_arr.getvalue()
-
-                # 将图片插入到Excel单元格
-                img = openpyxl.drawing.image.Image(BytesIO(img_byte_arr))
-                ws.add_image(img, cell.coordinate)
-                
-                # 调整单元格大小
-                ws.row_dimensions[cell.row].height = 8 * 20  # 约等于200像素
-                ws.column_dimensions[openpyxl.utils.get_column_letter(cell.column)].width = 25  # 约等于200像素
-
-    for row in ws.iter_rows(min_row=2, min_col= 10, max_col=10):  # 假设第一行是表头，从第二行开始
-        for cell in row:
-            if isinstance(cell.value, str) and 'http' in cell.value:  # 检查单元格是否包含'http'
-                cell.hyperlink = cell.value  # 将单元格文本设置为超链接
-
-    for row in ws.iter_rows():
-        for cell in row:
-            cell.alignment = Alignment(horizontal='left', vertical='center', wrapText=True)
 
     # 保存修改后的Excel文件
     wb.save(excel_path)
@@ -306,6 +266,7 @@ def phaseTwo(excel_path):
     driver.quit()
     
     
-def get_gifts(main_link, excel_path, toCollect=5):
-    # phaseOne(main_link, excel_path, toCollect)
-    phaseTwo(excel_path)
+def get_gifts(main_link, excel_path, toCollect=5, max_workers=3):
+    phaseOne(main_link, excel_path, toCollect)
+    phaseTwo(excel_path, max_workers)
+    ef.excelFormat(excel_path)
