@@ -239,9 +239,15 @@ def phaseTwo(excel_path, max_workers=3):
     # 读取Pandas DataFrame
     df = pd.read_excel(excel_path)
     
+    completed_tasks = 0
+    
     # 使用多线程获取详细信息
     with ThreadPoolExecutor(max_workers) as executor:
-        details = list(executor.map(get_details, df["地址"]))
+        details = []
+        for result in executor.map(get_details, df["地址"]):
+            details.append(result)
+            completed_tasks += 1
+            print(f"Progressed: {completed_tasks}")
 
     details_df = pd.DataFrame(details)
     final_df = pd.concat([df, details_df], axis=1)
