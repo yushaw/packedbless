@@ -9,4 +9,7 @@ man_path = './data/raw/amazon_man.xlsx'
 forWoman = "https://www.amazon.com/gcx/Gifts-for-Women/gfhz/category?categoryId=adult-female"
 woman_path = './data/raw/amazon_woman.xlsx'
 
-crawler.crawl_forAmazon_withoutTagging(forWoman, woman_path, 1000, 1)
+handmade = "https://www.amazon.com/gcx/Gift-shop/gfhz/events/?_encoding=UTF8&categoryId=handmade-EGgiftshop"
+handmade_path = './data/raw/amazon_handmade.xlsx'
+
+crawler.crawl_forAmazon_withoutTagging(handmade, handmade_path, 1000, 5)
