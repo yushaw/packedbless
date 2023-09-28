@@ -1,12 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
-import openpyxl
 from openpyxl import load_workbook
-from openpyxl.styles import Alignment
-from PIL import Image
-from io import BytesIO
-import base64
-import requests
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
