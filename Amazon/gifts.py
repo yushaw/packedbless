@@ -125,6 +125,9 @@ def phaseOne(main_link,excel_path, toCollect):
         
         for section in soup.select("[id^='gcx-gf-section-']"):
             for product in section.select(".d4xojt-0"):
+                if success_count >= limit:
+                    break
+                
                 unique_id = product.get('class')[-1]
                 
                 # 在新标签页中打开商品详细页面
@@ -134,6 +137,9 @@ def phaseOne(main_link,excel_path, toCollect):
                 if product_link in product_links:
                     continue
                 product_links.add(product_link)
+                
+                if success_count >= limit:
+                    break
                 
                 # 提取信息
                 title = product.select_one("[data-test='product'] span").text
@@ -196,8 +202,9 @@ def phaseOne(main_link,excel_path, toCollect):
                 # 检查是否达到上限
                 if success_count >= limit:
                     break
-
-
+            
+            if success_count >= limit:
+                break
         
         # 随机延迟
         time.sleep(random.uniform(1.0, 3.0))
@@ -229,9 +236,15 @@ def phaseOne(main_link,excel_path, toCollect):
         raise ValueError(str(e))
 
 
-def phaseTwo(excel_path, max_workers=3):
+def phaseTwo(excel_path, max_workers):
         
     wb = load_workbook(filename=excel_path)
+    
+    if len(wb.sheetnames) > 0:
+        wb.active = 0
+    else:
+        raise ValueError("Workbook has no sheets.")
+
     ws = wb.active    
     
     # 初始化Selenium Webdriver
@@ -261,7 +274,7 @@ def phaseTwo(excel_path, max_workers=3):
     save_interval = total_tasks // 9  # 计算保存间隔
 
     # 执行任务
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers) as executor:
         for result in executor.map(get_details, df["地址"][completed_tasks:]):
             details.append(result)
             completed_tasks += 1
@@ -273,10 +286,17 @@ def phaseTwo(excel_path, max_workers=3):
                 with open(completed_tasks_file, 'wb') as f:
                     pickle.dump(completed_tasks, f)
 
-            print(f"Progressed: {completed_tasks}")
+            print(f"Processed: {completed_tasks}")
 
     details_df = pd.DataFrame(details)
     final_df = pd.concat([df, details_df], axis=1)
+    
+    print("final_df head:", final_df.head())
+
+    # Check data types and structure
+    print("df info:")
+    final_df.info()
+
     column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址"]
     final_df = final_df[column_order]
     
