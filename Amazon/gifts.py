@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 import os
 import pickle
 from selenium import webdriver
@@ -299,14 +301,30 @@ def phaseTwo(excel_path, max_workers):
 
     column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址"]
     final_df = final_df[column_order]
-    
-    # 将最终DataFrame保存到Excel
-    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-        writer.book = wb
-        final_df.to_excel(writer, index=False)
+    print("final_df head:", final_df.head())
 
-    # 保存修改后的Excel文件
+    # Check data types and structure
+    print("df info:")
+    final_df.info()
+    
+    # 创建一个新的Excel工作簿
+    wb = Workbook()
+    ws = wb.active  # 获取活动工作表
+
+    # 假设final_df是您要保存的DataFrame
+    for col_num, column_title in enumerate(final_df.columns, 1):
+        col_letter = get_column_letter(col_num)
+        ws[f"{col_letter}1"] = column_title
+
+    # 写入数据
+    for row_num, row_data in enumerate(final_df.values, 2):
+        for col_num, cell_value in enumerate(row_data, 1):
+            col_letter = get_column_letter(col_num)
+            ws[f"{col_letter}{row_num}"] = cell_value
+
+    # 保存工作簿
     wb.save(excel_path)
+
     
     # 任务完成，删除临时数据
     os.remove(details_file)
