@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 from openpyxl import load_workbook
 import os
+import pickle
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -238,15 +239,40 @@ def phaseTwo(excel_path, max_workers=3):
     
     # 读取Pandas DataFrame
     df = pd.read_excel(excel_path)
+        
+    # 检查是否有临时数据
+    temp_dir = './temp'
+    details_file = os.path.join(temp_dir, 'details.pkl')
+    completed_tasks_file = os.path.join(temp_dir, 'completed_tasks.pkl')
     
-    completed_tasks = 0
-    
-    # 使用多线程获取详细信息
-    with ThreadPoolExecutor(max_workers) as executor:
+    if not os.path.exists(temp_dir):
+        os.mkdir(temp_dir)
+
+    try:
+        with open(details_file, 'rb') as f:
+            details = pickle.load(f)
+        with open(completed_tasks_file, 'rb') as f:
+            completed_tasks = pickle.load(f)
+    except FileNotFoundError:
         details = []
-        for result in executor.map(get_details, df["地址"]):
+        completed_tasks = 0
+    
+    total_tasks = len(df["地址"])
+    save_interval = total_tasks // 9  # 计算保存间隔
+
+    # 执行任务
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        for result in executor.map(get_details, df["地址"][completed_tasks:]):
             details.append(result)
             completed_tasks += 1
+
+            # 根据保存间隔进行保存
+            if completed_tasks % save_interval == 0:
+                with open(details_file, 'wb') as f:
+                    pickle.dump(details, f)
+                with open(completed_tasks_file, 'wb') as f:
+                    pickle.dump(completed_tasks, f)
+
             print(f"Progressed: {completed_tasks}")
 
     details_df = pd.DataFrame(details)
@@ -261,6 +287,10 @@ def phaseTwo(excel_path, max_workers=3):
 
     # 保存修改后的Excel文件
     wb.save(excel_path)
+    
+    # 任务完成，删除临时数据
+    os.remove(details_file)
+    os.remove(completed_tasks_file)
     
     driver.quit()
     
