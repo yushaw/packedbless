@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import time
 import random
 import captcha.amazon as captcha
+import re
 
 
 def get_details(product_link): 
@@ -22,18 +23,45 @@ def get_details(product_link):
     
     driver.get(product_link)  
     
+    match = re.search(r'/dp/([A-Za-z0-9]+)', product_link)
+    sku_id = f"amz-{match.group(1)}" if match else "Not found"
+    
+    
     # Check for captcha
     if "captcha" in driver.page_source.lower():
         captcha_solved = captcha.solve_captcha(driver)
         if not captcha_solved:
             print("Failed to solve captcha. Product link: ", product_link)
             driver.quit()
-            return  {"分类1": "NaN",
+            return  {
+                    "SKU": "NaN",
+                    "标题": "NaN",
+                    "价格": "NaN",
+                    "人数": "NaN",
+                    "image_product": "NaN",
+                    "分类1": "NaN",
                     "分类2": "NaN",
                     "分类3": "NaN",
                     "描述": "NaN",
                     "rating": "NaN"}
-  
+            
+    
+    # 定位到图片元素
+    try:
+        img_element = driver.find_element(By.ID, "landingImage")
+        img_url = img_element.get_attribute('src')
+    except Exception as e:
+        print("Error while fetching image URL:", e)
+        img_url = None
+
+    if img_url:
+        pattern = r'(_SX\d+_)'
+        image_product = re.sub(pattern, '_SL1500_', img_url)
+    else:
+        image_product = None
+    
+    print(image_product)
+    
     # 提取详细信息
     try:
         detail_soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -83,17 +111,54 @@ def get_details(product_link):
             pass
     else:
         rating = "N/A"
-    
+        
+     # 提取商品名称
+    try:
+        title_element = detail_soup.find('span', {'id': 'productTitle'})
+        title = title_element.text.strip()
+    except Exception as e:
+        print("Error occurred while extracting product title: ", e)
+        title = None
+
+    # 提取价格
+    try:
+        price_whole_element = detail_soup.find('span', {'class': 'a-price-whole'})
+        # 移除小数点
+        price_whole = price_whole_element.text.split('.')[0].strip()
+
+        price_fraction_element = detail_soup.find('span', {'class': 'a-price-fraction'})
+        price_fraction = price_fraction_element.text.strip()
+
+        price = f"${price_whole}.{price_fraction}"
+    except Exception as e:
+        print("Error occurred while extracting price: ", e)
+        price = None
+
+
+    # 提取评价人数
+    try:
+        reviews_count_element = detail_soup.find('span', {'id': 'acrCustomerReviewText'})
+        reviews_count = reviews_count_element.text.strip()
+    except Exception as e:
+        print("Error occurred while extracting number of reviews: ", e)
+        reviews_count = None
+        
     # 随机延迟
     # time.sleep(random.uniform(2.0, 6.0))    
     driver.quit()
-    return {"分类1": cat1,
-                    "分类2": cat2,
-                    "分类3": cat3,
-                    "描述": description,
-                    "rating": rating}
+    return {"SKU": sku_id,
+            "分类1": cat1,
+            "分类2": cat2,
+            "分类3": cat3,
+            "标题": title,
+            "描述": description,
+            "价格": price,
+            "rating": rating,
+            "人数": reviews_count,
+            "地址": product_link,
+            "image_product": image_product
+            }
     
-
 def phaseOne(main_link,excel_path, toCollect):
     
     # 创建目录
@@ -143,6 +208,10 @@ def phaseOne(main_link,excel_path, toCollect):
                 if success_count >= limit:
                     break
                 
+                
+                match = re.search(r'/dp/([A-Za-z0-9]+)', product_link)
+                sku_id = f"amz-{match.group(1)}" if match else "Not found"
+                
                 # 提取信息
                 title = product.select_one("[data-test='product'] span").text
                 
@@ -189,6 +258,7 @@ def phaseOne(main_link,excel_path, toCollect):
                     print("Image URL with attribute 'data-a-hires' not found.")
                     
                 data_list.append({
+                    "SKU": sku_id,
                     "图": image_url,  # This will be the image URL, actual image insertion happens later
                     "标题": title,
                     "价格": price,
@@ -291,33 +361,42 @@ def phaseTwo(excel_path, max_workers):
             print(f"Processed: {completed_tasks}")
 
     details_df = pd.DataFrame(details)
-    final_df = pd.concat([df, details_df], axis=1)
     
-    print("final_df head:", final_df.head())
+    # 更新 details_df 中的数据到 df
+    for index, row in details_df.iterrows():
+        if index < len(df):
+            # 更新现有的字典
+            df_row = df.loc[index].to_dict()
+            detail_row = row.to_dict()
 
-    # Check data types and structure
+            # 使用字典解包合并更新
+            updated_row = {**df_row, **detail_row}
+
+            # 更新回 df
+            df.loc[index] = updated_row
+        else:
+            # 添加新行
+            df = df.append(row, ignore_index=True)
+
+    # 调整 df 的列顺序
+    column_order = ["SKU", "分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址", "image_product"]
+    df = df[column_order]
+
+    # 检查数据类型和结构
     print("df info:")
-    final_df.info()
+    df.info()
 
-    column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址"]
-    final_df = final_df[column_order]
-    print("final_df head:", final_df.head())
-
-    # Check data types and structure
-    print("df info:")
-    final_df.info()
-    
     # 创建一个新的Excel工作簿
     wb = Workbook()
     ws = wb.active  # 获取活动工作表
 
-    # 假设final_df是您要保存的DataFrame
-    for col_num, column_title in enumerate(final_df.columns, 1):
+    # 将 df 的列标题写入Excel
+    for col_num, column_title in enumerate(df.columns, 1):
         col_letter = get_column_letter(col_num)
         ws[f"{col_letter}1"] = column_title
 
     # 写入数据
-    for row_num, row_data in enumerate(final_df.values, 2):
+    for row_num, row_data in enumerate(df.values, 2):
         for col_num, cell_value in enumerate(row_data, 1):
             col_letter = get_column_letter(col_num)
             ws[f"{col_letter}{row_num}"] = cell_value
@@ -325,11 +404,10 @@ def phaseTwo(excel_path, max_workers):
     # 保存工作簿
     wb.save(excel_path)
 
-    
     # 任务完成，删除临时数据
     os.remove(details_file)
     os.remove(completed_tasks_file)
-    
+
     driver.quit()
     
     

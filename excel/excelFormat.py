@@ -15,7 +15,7 @@ def excelFormat(excel_path):
     # 读取Pandas DataFrame
     #df = pd.read_excel(excel_path)
     
-    #column_order = ["分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址",'男士评分','女士评分','processed','translated']
+    #column_order = ["SKU", "分类1", "分类2", "分类3", "图", "标题", "描述", "价格", "rating", "人数", "地址",'男士评分','女士评分','processed','translated']
     #final_df = df[column_order]
     
     # 将最终DataFrame保存到Excel
@@ -28,15 +28,16 @@ def excelFormat(excel_path):
     ws.column_dimensions['B'].width = 15
     ws.column_dimensions['C'].width = 15
     ws.column_dimensions['D'].width = 15
-    ws.column_dimensions['E'].width = 20
-    ws.column_dimensions['F'].width = 40
-    ws.column_dimensions['J'].width = 30
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 20
+    ws.column_dimensions['G'].width = 40
+    ws.column_dimensions['K'].width = 30
 
     wb.save(excel_path)
     
     processed = 0
     
-    for row in ws.iter_rows(min_col=4, max_col=4, min_row=2):  # 假设“图”列在第一列
+    for row in ws.iter_rows(min_col=5, max_col=5, min_row=2):  # 假设“图”列在第一列
         for cell in row:
             image_url = cell.value  # 从单元格获取图片URL
             # 使用requests库从网络下载图片
@@ -65,7 +66,7 @@ def excelFormat(excel_path):
                 processed += 1
                 print("Processed: ", processed)
 
-    for row in ws.iter_rows(min_row=2, min_col= 10, max_col=10):  # 假设第一行是表头，从第二行开始
+    for row in ws.iter_rows(min_row=2, min_col= 11, max_col=11):  # 假设第一行是表头，从第二行开始
         for cell in row:
             if isinstance(cell.value, str) and 'http' in cell.value:  # 检查单元格是否包含'http'
                 cell.hyperlink = cell.value  # 将单元格文本设置为超链接
